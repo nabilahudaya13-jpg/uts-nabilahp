@@ -5,7 +5,7 @@ import api from "@/lib/axios";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 
-interface FormState {
+interface Patient {
   id: string;
   name: string;
   no_rm: string;
@@ -15,13 +15,13 @@ interface FormState {
 }
 
 export default function Home() {
-  const [showForm, setShowForm] = useState(false);
-  const [users, setUsers] = useState<FormState[]>([]);
+  const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
   const [validated, setValidated] = useState(false);
 
-  const [form, setForm] = useState<FormState>({
+  const [form, setForm] = useState<Patient>({
     id: "",
     name: "",
     no_rm: "",
@@ -30,15 +30,12 @@ export default function Home() {
     address: "",
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
-
+  // Fetch data dari API
   const loadData = () => {
     setLoading(true);
     api
       .get("/")
-      .then((res) => setUsers(res.data.results.data || []))
+      .then((res) => setPatients(res.data.results.data || []))
       .finally(() => setLoading(false));
   };
 
@@ -46,6 +43,12 @@ export default function Home() {
     loadData();
   }, []);
 
+  // Handle input form
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  // Reset form
   const resetForm = () => {
     setForm({
       id: "",
@@ -60,12 +63,13 @@ export default function Home() {
     setShowForm(false);
   };
 
+  // Submit form
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const formElement = e.currentTarget;
+    const formEl = e.currentTarget;
 
     // Validasi bootstrap
-    if (!formElement.checkValidity()) {
+    if (!formEl.checkValidity()) {
       e.stopPropagation();
       setValidated(true);
       return;
@@ -73,10 +77,12 @@ export default function Home() {
 
     try {
       if (isEdit) {
+        // Update pasien
         await api.put(`/${form.id}`, form);
         alert("Pasien berhasil diperbarui!");
       } else {
-        const { id, ...newData } = form;
+        // Add pasien
+        const { id, ...newData } = form; // Jangan kirim id ke API
         await api.post("/", newData);
         alert("Pasien berhasil ditambahkan!");
       }
@@ -88,12 +94,14 @@ export default function Home() {
     }
   };
 
-  const handleEdit = (u: FormState) => {
-    setForm(u);
+  // Edit pasien
+  const handleEdit = (patient: Patient) => {
+    setForm(patient);
     setIsEdit(true);
     setShowForm(true);
   };
 
+  // Delete pasien
   const handleDelete = async (id: string) => {
     if (!confirm("Yakin hapus pasien ini?")) return;
 
@@ -109,15 +117,15 @@ export default function Home() {
   return (
     <div className="container py-5">
 
-      {/* HEADER */}
+      {/* Header */}
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h3 className="fw-bold">List Pasien</h3>
-        <button className="btn btn-warning" onClick={resetForm}>
+        <button className="btn btn-warning" onClick={() => { resetForm(); setShowForm(true); }}>
           Add New Pasien
         </button>
       </div>
 
-      {/* FORM */}
+      {/* Form */}
       {showForm && (
         <div className="card p-4 mb-4 shadow-sm">
           <form noValidate className={validated ? "was-validated" : ""} onSubmit={handleSubmit}>
@@ -164,7 +172,7 @@ export default function Home() {
               <div className="col-md-6">
                 <label className="form-label">Nomor Telepon</label>
                 <input
-                  type="number"
+                  type="text"
                   name="phone_number"
                   className="form-control"
                   value={form.phone_number}
@@ -191,15 +199,13 @@ export default function Home() {
               <button type="button" className="btn btn-secondary" onClick={resetForm}>
                 Cancel
               </button>
-              <button type="submit" className="btn btn-danger">
-                {isEdit ? "Update" : "Submit"}
-              </button>
+              <button type="submit" className="btn btn-danger">{isEdit ? "Update" : "Submit"}</button>
             </div>
           </form>
         </div>
       )}
 
-      {/* TABLE */}
+      {/* Table */}
       <table className="table table-striped table-bordered">
         <thead className="table-light">
           <tr>
@@ -215,22 +221,22 @@ export default function Home() {
         <tbody>
           {loading ? (
             <tr><td colSpan={7} className="text-center py-3">Loading...</td></tr>
-          ) : users.length === 0 ? (
+          ) : patients.length === 0 ? (
             <tr><td colSpan={7} className="text-center py-3">No Data</td></tr>
           ) : (
-            users.map((u, i) => (
-              <tr key={u.id}>
+            patients.map((p, i) => (
+              <tr key={p.id}>
                 <td>{i + 1}</td>
-                <td>{u.name}</td>
-                <td>{u.no_rm}</td>
-                <td>{u.date_of_birth}</td>
-                <td>{u.phone_number}</td>
-                <td>{u.address}</td>
+                <td>{p.name}</td>
+                <td>{p.no_rm}</td>
+                <td>{p.date_of_birth}</td>
+                <td>{p.phone_number}</td>
+                <td>{p.address}</td>
                 <td className="d-flex gap-2 justify-content-center">
-                  <button className="btn p-0" onClick={() => handleEdit(u)}>
+                  <button className="btn p-0" onClick={() => handleEdit(p)}>
                     <i className="bi bi-pencil-square text-primary fs-5"></i>
                   </button>
-                  <button className="btn p-0" onClick={() => handleDelete(u.id)}>
+                  <button className="btn p-0" onClick={() => handleDelete(p.id)}>
                     <i className="bi bi-trash3 text-danger fs-5"></i>
                   </button>
                 </td>
@@ -242,3 +248,4 @@ export default function Home() {
     </div>
   );
 }
+
